@@ -1,0 +1,5 @@
+#define MAX_FLAGS 100
+#define MAX_TEXTURES 100
+#define MAX_MAP_HEIGHT 100
+#define MAX_MAP_WIDTH 100
+#define MAX_KEYS 100
