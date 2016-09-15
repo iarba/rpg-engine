@@ -1,8 +1,8 @@
-#include "game.h"
+#include "savestates.h"
 
 int save_savestate(void* pointer)
 {
-  file_destination = (char*) pointer;
+  char *file_destination = (char*) pointer;
   FILE *f;
   int i, return_value = 0;
   f = fopen(file_destination, "wb");
@@ -16,11 +16,6 @@ int save_savestate(void* pointer)
     return_value = 1;
     goto save_savestate_return;
   }
-  if(MAX_TEXTURES != fwrite(resource_textures, sizeof(char), MAX_TEXTURES, f))
-  {
-    return_value = 1;
-    goto save_savestate_return;
-  }
   for(i = 0; i < MAX_MAP_HEIGHT; i++)
   {
     if(MAX_MAP_WIDTH != fwrite(resource_map[i], sizeof(int), MAX_MAP_WIDTH, f))
@@ -29,11 +24,6 @@ int save_savestate(void* pointer)
     goto save_savestate_return;
     }
   }
-  if(3 * MAX_KEYS != fwrite(resource_keys, sizeof(int), 3 * MAX_KEYS, f))
-  {
-    return_value = 1;
-    goto save_savestate_return;
-  }
   save_savestate_return:
   fclose(f);
   return return_value;
@@ -41,7 +31,7 @@ int save_savestate(void* pointer)
 
 int load_savestate(void* pointer)
 {
-  file_destination = (char*) pointer;
+  char *file_destination = (char*) pointer;
   FILE *f;
   int i, return_value = 0;
   f = fopen(file_destination, "rb");
@@ -55,11 +45,6 @@ int load_savestate(void* pointer)
     return_value = 1;
     goto load_savestate_return;
   }
-  if(MAX_TEXTURES != fread(resource_textures, sizeof(char), MAX_TEXTURES, f))
-  {
-    return_value = 1;
-    goto load_savestate_return;
-  }
   for(i = 0; i < MAX_MAP_HEIGHT; i++)
   {
     if(MAX_MAP_WIDTH != fread(resource_map[i], sizeof(int), MAX_MAP_WIDTH, f))
@@ -68,19 +53,73 @@ int load_savestate(void* pointer)
     goto load_savestate_return;
     }
   }
-  if(3 * MAX_KEYS != fread(resource_keys, sizeof(int), 3 * MAX_KEYS, f))
-  {
-    return_value = 1;
-    goto load_savestate_return;
-  }
   load_savestate_return:
   fclose(f);
   return return_value;
 }
 
-void time_tick()
+int load_keys()
 {
-  if(!(sim_time % 100))
+  FILE *f;
+  int i = 0, return_value = 0, key, flag, value;
+  f = fopen("keys.dat", "r");
+  if(f == NULL)
   {
+    return_value = 1;
+    goto load_keys_return;
   }
+  fscanf(f, "\n");
+  while(fscanf(f, "%d %d %d\n", &key, &flag, &value)
+  {
+    resource_keys[i] = key;
+    resource_keys[i + 1] = flag;
+    resource_keys[i + 2] = value;
+    i += 3;
+  }
+  load_keys_return:
+  fclose(f);
+  return return_value;
+}
+
+int load_textures()
+{
+  FILE *f;
+  int index, texture, return_value = 0;
+  f = fopen("textures.dat", "r");
+  if(f == NULL)
+  {
+    return_value = 1;
+    goto load_textures_return;
+  }
+  fscanf(f, "\n");
+  while(fscanf(f, "%d %d\n", &index, &texture) != 2)
+  {
+    resource_textures[index] = texture;
+  }
+  load_textures_return:
+  fclose(f);
+  return return_value;
+}
+
+int load_map()
+{
+  FILE *f;
+  int i, j, return_value = 0;
+  f = fopen("map.dat", "r");
+  if(f == NULL)
+  {
+    return_value = 1;
+    goto load_keys_return;
+  }
+  fscanf(f, "\n");
+  for(i = 0; i < MAX_MAP_HEIGHT; i++)
+  {
+    for(j = 0; j < MAX_MAP_WIDTH; j++)
+    {
+      fscanf("%d", &resource_map[i][j]);
+    } 
+  }
+  load_keys_return:
+  fclose(f);
+  return return_value;
 }

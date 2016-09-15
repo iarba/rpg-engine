@@ -1,12 +1,11 @@
-#include <iostream>
-#include <stdio.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <termios.h>
-#include <unistd.h>
 #include "game.h"
+#include "savestates.h"
+#include "render.h"
+#include "events.h"
 
-int sim_time = 0;
+int *resource_flags, **resource_map, *resource_keys;
+char *resource_textures;
+int resource_time;
 
 int getch()
 {
@@ -19,16 +18,6 @@ int getch()
   ch = getchar();
   tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
   return ch;
-}
-
-void* read_input(void* args)
-{
-  while(!resource_flags[0])
-  {
-    int c = getch();
-    key_search(c, 0, MAX_KEYS);
-  }
-  return NULL;
 }
 
 void key_search(int c, int left, int right)
@@ -50,6 +39,16 @@ void key_search(int c, int left, int right)
   {
     key_search(c, left, avg-1);
   }
+}
+
+void* read_input(void* args)
+{
+  while(!resource_flags[0])
+  {
+    int c = getch();
+    key_search(c, 0, MAX_KEYS);
+  }
+  return NULL;
 }
 
 int main(int argc, char** argv)
@@ -98,13 +97,22 @@ int main(int argc, char** argv)
   }
   else
   {
-    if(load_savestate("start_state.s"))
+    if(load_map())
     {
       error_code = 8;
       goto initialisation_error;
     }
   }
-  load_savestate()
+  if(load_keys())
+  {
+    error_code = 9;
+    goto initialisation_error;
+  }
+  if(load_textures())
+  {
+    error_code = 10;
+    goto initialisation_error;
+  }
   if(pthread_create(new pthread_t, NULL, &read_input, NULL))
   {
     error_code = 6;
@@ -112,8 +120,12 @@ int main(int argc, char** argv)
   }
   while(!resource_flags[0])
   {
-    sim_time++;
-    time_tick();
+    resource_time++;
+    if(event_interpretation())
+    {
+      break;
+    }
+    draw_map();
   }
   return 0;
   initialisation_error:
